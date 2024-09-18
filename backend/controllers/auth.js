@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 // Authenticate user login
 exports.authenticateUser = async (req, res) => {
@@ -28,7 +28,7 @@ exports.authenticateUser = async (req, res) => {
     console.log("Active status: ",activeStatus);
 
     // check for disable account
-    if (activeStatus == 2) {
+    if (activeStatus == 0) {
       return res.status(404).json({ message: "User not found" });
     }
 
@@ -42,7 +42,7 @@ exports.authenticateUser = async (req, res) => {
       // Generate JWT token
       const token = jwt.sign(
         {
-          username: User_name,
+          User_name: User_name,
           ipaddress: req.ip,
           browser: req.headers['user-agent']
         }, process.env.JWT_SECRET,
@@ -53,7 +53,6 @@ exports.authenticateUser = async (req, res) => {
       // Set JWT token in a cookie
       res.cookie("token", token, {
         httpOnly: true, // Prevent client-side JS from accessing the token
-        //secure: process.env.NODE_ENV === "production",
         maxAge: 3600000, // 1 hour in milliseconds
       });
 
@@ -69,8 +68,6 @@ exports.authenticateUser = async (req, res) => {
     connection.release();
   }
 };
-
-//res.clearCookie(name, [ options ])
 
 exports.UserLogout = (req, res) => {
   // Clear the authentication token cookie

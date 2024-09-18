@@ -1,9 +1,15 @@
 <script>
 	import axios from 'axios';
 	import { goto } from '$app/navigation'; // Import SvelteKit's goto function
+	import { writable } from 'svelte/store';
+	import Toast from '../components/Toast.svelte';
+	import { addToast } from '../components/store';
+	import { validateEmpty } from '../utils/validators';
 
+	export const userStore = writable(null);
 	let username = '';
 	let password = '';
+	let successMessage = '';
 	let errorMessage = '';
 
 	async function clearLogin() {
@@ -11,8 +17,9 @@
 		password = '';
 	}
 
-	const login = async () => {
+	async function login () {
 		try {
+			//console.log('It is now posting');
 			const response = await axios.post(
 				'http://localhost:3000/auth/login',
 				{
@@ -28,34 +35,88 @@
 			);
 
 			if (response.status === 200) {
-				goto('/profile');
+				successMessage = 'Successful Login';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 5000 // 5 seconds
+				});
+				goto('/AppList');
+				//console.log(response.data);
 			} else if (response.status === 400) {
 				// Bad request
-				errorMessage = 'An unexpected error occurred. Please try again.';
+				errorMessage = 'Invalid Credentials';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 5000 // 5 seconds
+				});
 				clearLogin();
+				return;
+			} else if (response.status === 404) {
+				// Bad request
+				errorMessage = 'Invalid Credentials';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 5000 // 5 seconds
+				});
+				clearLogin();
+				return;
 			} else {
 				errorMessage = 'Invalid Credentials';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 5000 // 5 seconds
+				});
 				clearLogin();
+				return;
 			}
 		} catch (error) {
 			//console.error('Login error:', error);
 			clearLogin();
-			errorMessage = 'An unexpected error occurred. Please try again.';
+			errorMessage = 'Invalid Credentials';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 5000 // 5 seconds
+			});
+			clearLogin();
+			return;
 		}
 	};
+
+	function validatorFields() {
+		console.log('Username: ', username);
+		console.log('Password: ', password);
+		if (!validateEmpty(username) || !validateEmpty(password)) {
+			errorMessage = 'Invalid Credentials';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 5000 // 5 seconds
+			});
+			goto('/');
+		} else {
+			console.log('We are in the login part');
+			login();
+		}
+	}
 </script>
 
 <div class="login-container">
 	<div class="sub-main">
 		<form class="login-form" on:submit|preventDefault>
 			<label for="username">Username: </label>
-			<input
-				type="username"
-				id="username"
-				bind:value={username}
-				placeholder="Username"
-				required
-			/><br /><br />
+			<input type="text" id="username" bind:value={username} placeholder="Username" required /><br
+			/><br />
 			<label for="password">Password: </label>
 			<input
 				type="password"
@@ -64,13 +125,12 @@
 				placeholder="Password"
 				required
 			/><br /><br />
-			<button on:click={login}>Login</button>
-      {#if errorMessage}
-			  <p class="error-message">{errorMessage}</p>
-		  {/if}
+			<button on:click={validatorFields}>Login</button>
 		</form>
-
 	</div>
+</div>
+<div>
+	<Toast />
 </div>
 
 <style>
@@ -119,7 +179,7 @@
 		background-color: #0056b3;
 	}
 
-  .error-message{
-    color: red;
-  }
+	.error-message {
+		color: red;
+	}
 </style>

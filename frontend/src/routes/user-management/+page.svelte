@@ -1,29 +1,49 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
-	import { onDestroy } from 'svelte';
 	import axios from 'axios';
-	import { goto } from '$app/navigation'; // Import SvelteKit's goto function
-	import { invalidate } from '$app/navigation';
+	import { goto } from '$app/navigation';
+	import TopNavBar from '../../components/TopNavBar/+page.svelte';
+	import Popup from '../../components/PopUp/+page.svelte';
+	import Toast from '../../components/Toast.svelte';
+	import { createEventDispatcher } from 'svelte';
+	import { addToast } from '../../components/store';
+	import MultiSelect from 'svelte-multiselect';
+	import {
+		validatePassword,
+		validateEmail,
+		validateEmpty,
+		validateName,
+		validateGroupName
+	} from '../../utils/validators.js';
+
+	const dispatch = createEventDispatcher();
 
 	let username = '';
-	let password = '';
+	let groupname = '';
 	let errorMessage = '';
 	let successMessage = '';
-	let pageName = 'User Profile';
+	let pageName = 'User Management';
 
-	//let userList = [];
 	let userList: user[] = [];
-	let showAddGroupPopup = false; // Toggle popup
-  	let newGroup = ''; // New group name input
+	let groups: string[] = []; // State to hold the list of groups
 
+	// Flags to check if fields are touched
+	let emailChange = false;
+	let passChange = false;
+	let activeChange = false;
+	let groupChange = false;
+	//let editing = null;
+
+	interface Group {
+		Group_name: string;
+	}
 
 	let user = {
 		username: '',
 		password: '',
 		email: '',
 		active: '1', // Default to 'Yes'
-		group: 'User' // Default to 'Admin'
+		group: []
 	};
 
 	interface user {
@@ -31,25 +51,66 @@
 		password: string;
 		Email: string;
 		Active: number;
-		Group: string;
+		Group: string[];
 		id: number;
-	};
+	}
 
+	// this is to indicate flags when any of the user's field is edited.
+	let editPass;
+	let editEmail;
+	let editActive;
+	let editGroup = [];
+
+	async function getUser() {
+		try {
+			// get the group this user is in
+			const responseGetGrpName = await axios.get('http://localhost:3000/user/GroupName', {
+				withCredentials: true
+			});
+
+			if (responseGetGrpName.status === 200) {
+				const data = responseGetGrpName.data[0];
+				// Assign username and groupName
+				username = data.User_name;
+				groupname = data.Group_name;
+				console.log('User Name: ', username);
+				console.log('Group Name: ', groupname);
+			}
+		} catch (error) {
+			console.error('Error fetching profile:', error);
+			errorMessage = 'An error occurred while fetching user profile.';
+			goto('/');
+		}
+		if (groupname != 'Admin') {
+			console.log('User is not an Admin');
+			goto('/');
+		} else {
+			fetchUserList();
+		}
+	}
 	// Fetch user data on component mount
-	//onMount(async () => {
 	async function fetchUserList() {
 		try {
-			const response = await axios.get('http://localhost:3000/user/getall', {
-				withCredentials: false // Set to true if credentials are needed
+			let response = await axios.get('http://localhost:3000/user/getall', {
+				withCredentials: true
 			});
 			if (response.status === 200) {
 				userList = response.data;
-
 				userList = response.data.map((user: user, index: number) => ({
 					...user,
 					id: index + 1 // Simple incremental ID
 				}));
 				console.log('UserList: ', userList);
+			}
+
+			const responseGetGroups = await axios.get('http://localhost:3000/user/getGroupNames', {
+				withCredentials: true
+			});
+			if (responseGetGroups.status === 200) {
+				let groupList = responseGetGroups.data;
+				//the Group_name values are extracted from the groupList and stores them in a new array called groups
+				groups = [...groupList.map((group: string) => group.Group_name)];
+				//console.log('GroupList: ', groups);
 			} else {
 				errorMessage = 'Unable to fetch data.';
 				console.warn('Unexpected response status:', response.status);
@@ -57,6 +118,10 @@
 			}
 		} catch (error) {
 			console.error('Error fetching profile:', error);
+			console.log(error);
+			// if(error.res.data.messsage = "Access denied."){
+			// 	goto("/")
+			// }
 			errorMessage = 'An error occurred while fetching user profiles.';
 			goto('/error'); // Navigate to the error page
 		}
@@ -64,31 +129,32 @@
 
 	// Call the function on component mount
 	onMount(() => {
-		fetchUserList();
+		getUser();
 	});
 
+	// this is new User object used in Add New User
 	let newUser = {
 		username: '',
 		password: '',
 		email: '',
 		active: '1', // Default to 'Yes'
-		group: 'User' // Default to 'Admin'
+		group: [] // Default to 'Admin'
 	};
 
-	async function clearAddUserFields(){
+	// This is to clear Add New User fields
+	async function clearAddUserFields() {
 		newUser.username = '';
 		newUser.password = '';
 		newUser.email = '';
 		newUser.active = '';
-		newUser.group = '';
-	};
+		newUser.group = [];
+	}
 
+	let editingUserId: number | null = null; // Track the user being edited
 
-	let editingUserId: number | null=null; // Track the user being edited
-
-	// Functions
 	// Edit user
 	const editUser = (id: number) => {
+		editGroup = userList[id].Group;
 		console.log('editUser');
 		console.log(id);
 		editingUserId = id; // enable the fields to be writable
@@ -99,88 +165,276 @@
 		editingUserId = null;
 	};
 
-
-	const updateUserInfo = async (id: number, user: user) => {
-		console.log(user);
-		try {
-			const response = await axios.put(
-				`http://localhost:3000/user/updatedetails`,
-				{
-					User_name: user.User_name,
-					Password: user.password,
-					Email: user.Email,
-					Active: user.Active,
-					Group_name: user.Group
-				},
-				{
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					withCredentials: true // Include cookies with the request
-				}
-			);
-
-			if (response.status == 200) {
-				editingUserId = null;
-				await fetchUserList();
-				// Invalidate the route to re-fetch the data
-				//invalidate(`userList`);
-			} else {
-				console.error('Failed to save user data', response.status);
-			}
-			// Redirect to user management page
-			goto('/user-management');
-
-			// Clear sensitive fields or handle them as needed
-			user.password = ''; // Clear password after successful update
-		} catch (error) {
-			console.error('Error updating User Info', error);
-		}
-	};
-
 	// Add new user
 	const addUser = async () => {
-		try {
-			const response = await axios.post(
-				'http://localhost:3000/user/create',
-				{
-					User_name: newUser.username,
-					Password: newUser.password,
-					Email: newUser.email,
-					Active: newUser.active,
-					Group_name: newUser.group
-				},
-				{
-					headers: {
-						'Content-Type': 'application/json'
-						//Authorization: `Bearer ${localStorage.getItem('accessToken')}` // Send token if needed
+		// Validate user name and password fields
+		if (!validateEmpty(newUser.username)) {
+			errorMessage = 'Please enter the name';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 3000
+			});
+			return;
+		}
+		if (!validatePassword(newUser.password)) {
+			errorMessage =
+				'Password must be 8-10 characters long and include letters, numbers, and special characters.';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 3000
+			});
+			return;
+		}
+		if (userList.some((user) => user.User_name === newUser.username)) {
+			errorMessage = 'User Name already exist.';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 3000
+			});
+			return;
+		} else {
+			// once both username and password are validated, procceed to add.
+			try {
+				const response = await axios.post(
+					'http://localhost:3000/user/create',
+					{
+						User_name: newUser.username,
+						Password: newUser.password,
+						Email: newUser.email,
+						Active: newUser.active,
+						Group_name: newUser.group
 					},
-					withCredentials: true // Include cookies with the request
+					{
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						withCredentials: true
+					}
+				);
+				// Clear the form and reload the user list
+				successMessage = response.data.message || 'New User added successfully!';
+				addToast({
+					message: successMessage,
+					type: 'success',
+					dismissible: true,
+					timeout: 5000 // 5 seconds
+				});
+				await clearAddUserFields();
+				editingUserId = null;
+				await fetchUserList();
+				goto('/user-management');
+			} catch (error) {
+				console.error('Error adding user:', error);
+				if(error.response.data.message == "Access denied.")
+				{
+					goto('/');
 				}
-			);
-
-			// Clear the form and reload the user list
-			successMessage = response.data.message || 'New User added successfully!';
-			await clearAddUserFields();
-			editingUserId = null;
-			await fetchUserList();
-			goto('/user-management');
-		} catch (error) {
-			console.error('Error adding user:', error);
+			}
 		}
 	};
 
-	const toggleActive = (user: user) => {
-		user.Active = user.Active === 1 ? 2 : 1; // Toggle between 1 (active) and 2 (inactive)
+	let showPopup = false;
+
+	const handleAddGroup = (groupName: string) => {
+		console.log('Group added:', groupName);
+		if (!groups.includes(groupName)) {
+			groups = [...groups, groupName]; // Add the new group to the list
+		}
+		showPopup = false; // Close the pop-up after adding the group
 	};
+
+	const handleOpenPopup = () => {
+		showPopup = true;
+	};
+
+	const handleClosePopup = () => {
+		showPopup = false;
+	};
+
+	async function saveChanges(index) {
+		console.log('We are in the save changes function:');
+		console.log('Username: ', userList[index].User_name);
+		console.log(user);
+		if (passChange) {
+			console.log('Change Password: ', editPass);
+			try {
+				// update-email"
+				const response = await axios.put(
+					'http://localhost:3000/user/update-password',
+					{
+						User_name: userList[index].User_name,
+						Password: editPass
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						withCredentials: true // Include cookies with the request
+					}
+				);
+				if (response.status == 200) {
+					successMessage = 'Update Password succesfully';
+					addToast({
+						message: successMessage,
+						type: 'success',
+						dismissible: true,
+						timeout: 5000 // 5 seconds
+					});
+					editingUserId = null;
+					await fetchUserList();
+				}
+			} catch (error) {
+				console.log(error);
+				if(error.response.data.message == "Access denied.")
+				{
+					goto('/');
+				}
+				goto('/');
+			}
+		}
+		if (emailChange) {
+			console.log('Email change:');
+			console.log('New email: ', editEmail);
+			try {
+				const response = await axios.put(
+					'http://localhost:3000/user/update-email',
+					{
+						User_name: userList[index].User_name,
+						Email: editEmail
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						withCredentials: true // Include cookies with the request
+					}
+				);
+				if (response.status == 200) {
+					successMessage = 'Email updated succesfully';
+					addToast({
+						message: successMessage,
+						type: 'success',
+						dismissible: true,
+						timeout: 1000 // 5 seconds
+					});
+					editingUserId = null;
+					await fetchUserList();
+				}
+			} catch (error) {
+				console.log('error');
+				if(error.response.data.message == "Access denied.")
+				{
+					goto('/');
+				}
+				errorMessage = 'email not updated';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 1000
+				});
+			}
+		}
+		if (activeChange) {
+			console.log('Active change:');
+			console.log('Active: ', editActive);
+			try {
+				const response = await axios.put(
+					'http://localhost:3000/user/update-active',
+					{
+						User_name: userList[index].User_name,
+						Active: editActive
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						withCredentials: true // Include cookies with the request
+					}
+				);
+				if (response.status == 200) {
+					successMessage = 'Active updated succesfully';
+					console.log('Active 2:');
+					addToast({
+						message: successMessage,
+						type: 'success',
+						dismissible: true,
+						timeout: 1000 // 5 seconds
+					});
+				}
+			} catch (error) {
+				console.log('error');
+				if(error.response.data.message == "Access denied.")
+				{
+					goto('/');
+				}
+				errorMessage = 'Active not updated';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 1000
+				});
+			}
+		}
+		if (groupChange) {
+			//console.log('Username:', user.User_name);
+			console.log('Group change:');
+			console.log('Group: ', userList[index].Group);
+			try {
+				const response = await axios.put(
+					'http://localhost:3000/user/update-groups',
+					{
+						User_name: userList[index].User_name,
+						Group_name: userList[index].Group
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						withCredentials: true // Include cookies with the request
+					}
+				);
+				if (response.status == 200) {
+					successMessage = 'Group updated succesfully';
+					addToast({
+						message: successMessage,
+						type: 'success',
+						dismissible: true,
+						timeout: 1000 // 5 seconds
+					});
+					editingUserId = null;
+					await fetchUserList();
+				}
+			} catch (error) {
+				console.log(error);
+				if(error.response.data.message == "Access denied.")
+				{
+					goto('/');
+				}
+				errorMessage = 'Group not updated';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 1000
+				});
+			}
+		}
+		index = null;
+	}
 </script>
 
-<div class="user-management-header">
-  <h1>User Management</h1>
+<TopNavBar {pageName} {username} />
+<div class="createGrp-container">
+	<button class="add-group-btn" on:click={handleOpenPopup}>Create New Group</button>
 </div>
-
-<button class="add-group-btn" on:click={() => (showAddGroupPopup = true)}>Create New Group</button>
-
 <table>
 	<thead>
 		<tr>
@@ -194,77 +448,80 @@
 	</thead>
 	<tbody>
 		<!--{#each userList as user (user.User_name)}-->
-		{#each userList as user (user.id)}
+		{#each userList as user, index}
 			<tr>
 				<td>{user.User_name}</td>
 				<td class="password-col">
-					{#if editingUserId == user.id}
-						<input type="password" bind:value={user.password} />
+					{#if editingUserId == index}
+						<input
+							type="password"
+							id="password"
+							name="password"
+							bind:value={editPass}
+							on:change={(e) => (passChange = true)}
+						/>
 					{:else}
-						{'***'}
+						{'*********'}
 					{/if}
 				</td>
 				<td>
-					{#if editingUserId == user.id}
-						<input type="text" bind:value={user.Email} />
+					{#if editingUserId == index}
+						<input
+							type="text"
+							id="email"
+							name="email"
+							bind:value={editEmail}
+							on:change={(e) => (emailChange = true)}
+						/>
 					{:else}
 						{user.Email}
 					{/if}
 				</td>
 				<td>
-					{#if editingUserId == user.id}
-						<select bind:value={user.Active}>
+					{#if editingUserId == index}
+						<select bind:value={editActive} on:change={(e) => (activeChange = true)}>
 							<option value="1">Yes</option>
-							<option value="2">No</option>
+							<option value="0">No</option>
 						</select>
 					{:else if user.Active == 1}
 						Yes
-					{:else}
+					{:else if user.Active == 0}
 						No
 					{/if}
 				</td>
 				<td>
-					{#if editingUserId == user.id}
-						<select bind:value={user.Group}>
-							<option value="Admin">Admin</option>
-							<option value="User">User</option>
-						</select>
+					{#if editingUserId == index}
+						<MultiSelect
+							bind:selected={userList[index].Group}
+							options={groups}
+							on:change={(e) => (groupChange = true)}
+						/>
+						<!--<select bind:value={user.Group}>-->
+						<!--{#each groups as group (group)}
+							<label><input type="checkbox" value={group} bind:group={editGroup} checked={user.Group.includes(group)} on:change={(e) => (groupChange = true)}>{group}</label>
+						{/each}-->
 					{:else}
 						{user.Group}
-						<!--{#if user.Group && user.Group.length > 0}
-                            {#each user.Group as group}
-                                {group.Group}
-                            {/each}
-                        {:else}
-                            {''}
-                        {/if}-->
 					{/if}
 				</td>
 				<td>
-					{#if editingUserId === user.id}
+					{#if editingUserId === index}
 						<div class="action-buttons">
-							<!---<button on:click={() => updateUserInfo(user.id, user)}>Save</button>
-							<button on:click={() => cancelEdit(user.id)}>Cancel</button>-->
-							<a class="cancel-btn" on:click={() => cancelEdit(user.id)}>Cancel</a> | 
-            				<a class="save-btn" on:click={() => updateUserInfo(user.id, user)}>Save</a>
+							<a class="cancel-btn" on:click={() => cancelEdit(index)}>Cancel</a>
+							<a class="save-btn" on:click={() => saveChanges(index)}>Save</a>
 						</div>
 					{:else}
-						<a class="edit-btn" on:click={() => editUser(user.id)}>Edit</a>
-						<!---<button on:click={() => editUser(user.id)}>Edit</button>-->
+						<a class="edit-btn" on:click={() => editUser(index)}>Edit</a>
 					{/if}
 				</td>
 			</tr>
 		{/each}
-	</tbody>
-</table>
-
-<!-- Add New User Section -->
-<h2>Add New User</h2>
-<table class="user-table">
-	<tbody>
+		<tr><h2>Add New User</h2></tr>
 		<tr>
-			<td><input type="text" placeholder="Username" bind:value={newUser.username} /></td>
-			<td><input type="password" placeholder="Password" bind:value={newUser.password} /></td>
+			<td><input type="text" placeholder="Username" bind:value={newUser.username} required /></td>
+			<td
+				><input type="password" placeholder="Password" bind:value={newUser.password} required /></td
+			>
 			<td><input type="text" placeholder="Email" bind:value={newUser.email} /></td>
 			<td>
 				<select bind:value={newUser.active}>
@@ -273,37 +530,20 @@
 				</select>
 			</td>
 			<td>
-				<select bind:value={newUser.group}>
-					<option value="Admin">Admin</option>
-					<option value="User">User</option>
-				</select>
+				<MultiSelect bind:selected={newUser.group} options={groups} />
+				<!--{#each groups as group (group)}
+					<label><input type="checkbox" value={group} bind:group={newUser.group} />{group}</label>
+				{/each}-->
 			</td>
 			<td><button on:click={addUser}>Add User</button></td>
 		</tr>
 	</tbody>
 </table>
+<Toast />
 
-<!-- Add Group Popup -->
-{#if showAddGroupPopup}
-  <div class="popup">
-    <h2>Add New Group</h2>
-    <input type="text" placeholder="Group Name" bind:value={newGroup} />
-    <div class="popup-buttons">
-      <button on:click={() => (showAddGroupPopup = false)}>Close</button>
-      <button on:click={""}>Create Group</button>
-    </div>
-  </div>
-{/if}
+<Popup {groups} visible={showPopup} onClose={handleClosePopup} onAddGroup={handleAddGroup} />
 
 <style>
-	.user-management-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		background-color: #e0e0e0;
-		padding: 10px;
-	}
-
 	table {
 		width: 100%;
 		border-collapse: collapse;
@@ -324,9 +564,7 @@
 		border: none;
 		border-radius: 4px;
 		cursor: pointer;
-  	}
-
-
+	}
 
 	input[type='text'],
 	input[type='password'],
@@ -368,6 +606,18 @@
 		border: 1px solid #ccc;
 		box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
 		z-index: 10;
+		width: 500px;
+	}
+
+	.overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 999;
+		cursor: pointer;
 	}
 
 	.popup-buttons {
@@ -376,5 +626,16 @@
 		margin-top: 20px;
 	}
 
+	.createGrp-container {
+		display: flex;
+		justify-content: flex-end; /* Align items to the right */
+		padding: 10px;
+	}
 
+	.edit-btn:hover,
+	.cancel-btn:hover,
+	.save-btn:hover {
+		text-decoration: underline;
+		cursor: pointer;
+	}
 </style>

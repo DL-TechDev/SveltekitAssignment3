@@ -1,13 +1,10 @@
 <script>
 	export let username = ''; // Username passed as a prop
 	export let pageName = '';
+  export let isAdmin=false;
 	import logo from '$lib/assets/user.png';
   import { goto } from '$app/navigation';
   import axios from 'axios';
-  import { onMount, onDestroy } from 'svelte'
-
-  // State for dropdown visibility
-  let isDropdownOpen = false;
 
 const logout = async () => {
 		try {
@@ -29,32 +26,22 @@ const logout = async () => {
 		}
 	};
 
- 
   let toggleDropup = false // default state (dropdown close)
 
-  // Function to toggle dropdown visibility
-  //handleDropdownClick
-  const toggleDropdown = () => {
-    isDropdownOpen = !isDropdownOpen;
-  }
-
-   // Close the dropdown when clicking outside of it
-  const handleClickOutside = (event) => {
-    if (event.target.closest('.navbar-right') === null) {
-      isDropdownOpen = false;
+  function goProfilePage() {
+        goto('/profile');
     }
-  };
-  /*
-   // Add event listener for clicks outside when component is mounted
-  onMount(() => {
-    document.addEventListener('click', handleClickOutside);
-  });
 
-  // Remove event listener when component is destroyed
-  onDestroy(() => {
-    document.removeEventListener('click', handleClickOutside);
-  });
-*/
+  function goUserManagement() {
+
+        goto('/user-management');
+    }
+
+  function handleLogout() {
+        logout();
+        goto('/');
+    }
+
 </script>
 
 <nav class="navbar">
@@ -63,22 +50,31 @@ const logout = async () => {
 		<span class="pagename">{pageName}</span>
 	</div>
   
-	<div class="navbar-right">
-		<span class="username">{username}</span>
-    <img alt="logo" src={logo} width="30" height="30" /><br/>
-    <button on:click={logout}>Logout</button>
+  <div class="user-info">
+    <div class="navbar-right">
+      <span class="username">{username}</span>
+      <img alt="logo" id="logo" src={logo} width="30" height="30" /><br/>
+    </div>
+    <!-- Dropdown Menu -->
+    <div class="dropdown">
+      <a href="/profile" on:click={goProfilePage}>View/Edit Profile</a>
+      {#if (isAdmin)}
+      <a href="/user-management" on:click={goUserManagement}>User Management</a>
+      {/if}
+      <a href="/" on:click={handleLogout}>Logout</a>
+    </div>
   </div>
 </nav>
-
 
 <style>
 	.navbar {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 15px;
+		padding: 20px;
 		background-color: #e2e2e2ed;
 		color: black;
+    font-size: 20px;
 	}
 
 	.navbar-left {
@@ -89,7 +85,8 @@ const logout = async () => {
     display: flex;
 		margin-left: center; /* auto Pushes content to the right */
     position: relative; /* To position the dropdown menu */
-	}
+    cursor: pointer;
+  }
 
 	.username {
 		font-weight: bold;
@@ -103,32 +100,37 @@ const logout = async () => {
     font-size: 20px
   }
 
-   .dropdown-menu {
-    display: none; /* Hidden by default */
+  .dropdown {
+    display: none;
     position: absolute;
-    top: 100%; /* Position below the username */
-    right: 0; /* Align with the right edge of the parent */
+    top: 50px;
+    right: 30px;
     background-color: white;
-    color: black;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    z-index: 10;
-  }
-
-  .dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  border: none;
-  background: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    z-index: 100;
+    min-width: 200px;
+    border: 1px solid #ccc; /* Optional, for better visibility of bounds */
 }
 
-  .dropdown-item:hover {
+  .dropdown a {
+    display: block;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: #333;
+    font-weight: normal;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .dropdown a:hover {
     background-color: #f0f0f0;
   }
 
-  .dropdown-item:hover {
-      background-color: #f0f0f0;
+  .dropdown a:last-child {
+    border-bottom: none;
+  }
+
+  .user-info:hover .dropdown {
+    display: block;
   }
 </style>

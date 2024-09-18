@@ -14,6 +14,20 @@ exports.getAllGroups = async (req, res) => {
   }
 };
 
+// Get all groups
+exports.getAllGroupNames = async (req, res) => {
+  try {
+    let [value] = await pool.query("SELECT DISTINCT Group_name FROM Grouplist");
+    if (value.length === 0) {
+      res.status(404).send("Groups not Found");
+    }
+    console.log(value);
+    res.send(value);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 // Get a specific group by Group_id
 
 exports.getGroupById = async (req, res) => {
@@ -66,50 +80,3 @@ exports.AddNewGrp = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-
-/*
-// Add New Group
-exports.addGroup = (req, res) => {
-  const { Group_name } = req.body;
-
-  // Validate input
-  if (!Group_name) {
-    return res.status(400).json({ message: "Group name is required" });
-  }
-
-  // Start a transaction
-  db.beginTransaction((err) => {
-    if (err) {
-      return res.status(500).json({ error: "Error starting transaction" });
-    }
-
-    const query = "INSERT INTO Grouplist (Group_name) VALUES (?)";
-
-    db.query(query, [Group_name], (err, results) => {
-      if (err) {
-        // Rollback transaction on error
-        return db.rollback(() => {
-          res.status(500).json({ error: "Error adding new group" });
-        });
-      }
-
-      // Commit the transaction if the query was successful
-      db.commit((err) => {
-        if (err) {
-          // Rollback transaction if commit fails
-          return db.rollback(() => {
-            res.status(500).json({ error: "Error committing transaction" });
-          });
-        }
-
-        // Success response after committing the transaction
-        res.status(201).json({
-          message: "Group added successfully",
-          groupId: results.insertId, // The new group's ID
-          groupName: Group_name,
-        });
-      });
-    });
-  });
-};
-*/

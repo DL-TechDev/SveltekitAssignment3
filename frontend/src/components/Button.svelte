@@ -1,8 +1,8 @@
-<script>
-  export let label = 'Button'; // Default label for the button
-  export let onClick; // Action to perform when button is clicked
-  export let type = 'button'; // Button type: 'button', 'submit', etc.
+<script lang='ts'>
+  export let type: 'button' | 'submit' | 'reset' = 'button';
+  export let onClick: () => void;
   export let disabled = false; // Disabled state
+  export let label: string;
 </script>
 
 <style>
@@ -12,7 +12,7 @@
     color: white;
     border: none;
     border-radius: 5px;
-    font-size: 10px;
+    font-size: 15px;
     cursor: pointer;
   }
 
@@ -27,5 +27,5 @@
 </style>
 
 <button type={type} on:click={onClick} disabled={disabled}>
-  {label}
+  <slot>{label}</slot>
 </button>

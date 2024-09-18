@@ -10,14 +10,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-
 var cookieParser = require("cookie-parser");
 app.use(cookieParser());
-const { authenticateToken, authorizeRole } = require("./middleware/authMiddleware");
-
-// Setup up config file variables
-const dotenv = require("dotenv");
-dotenv.config({ path: "./config/.env" });
 
 // Middleware
 app.use(express.json()); // For parsing application/json
@@ -26,13 +20,11 @@ app.use(express.json()); // For parsing application/json
 // Import all routes
 const user = require("./routes/user");
 const group = require("./routes/group");
-const userGroup = require("./routes/userGroup");
 const authRoute = require("./routes/auth");
 
 // Routes
 app.use("/user", user);
 app.use("/group", group);
-app.use("/user_groups", userGroup);
 app.use("/auth", authRoute);
 
 // Start the server

@@ -2,6 +2,7 @@ const pool = require("../config/db");
 
 // Get all groups
 exports.getAllGroups = async (req, res) => {
+  console.log("Get All groups");
   try {
     let [value] = await pool.query("SELECT * FROM Grouplist");
     if (value.length === 0) {
@@ -33,7 +34,7 @@ exports.getAllGroupNames = async (req, res) => {
 exports.getGroupById = async (req, res) => {
   const { Group_id } = req.params;
   try {
-    const [value, fields] = await pool.execute("SELECT * FROM Grouplist WHERE Group_id = ?", [Group_id]);
+    const [value, fields] = await pool.query("SELECT * FROM Grouplist WHERE Group_id = ?", [Group_id]);
     if (value.length === 0) {
       return res.status(404).send("Group not Found");
     }
@@ -47,33 +48,35 @@ exports.getGroupById = async (req, res) => {
 // Add New Group
 exports.AddNewGrp = async (req, res) => {
   const grpName = req.body.Group_name;
+  console.log("Add New group");
   console.log(grpName);
 
-  let connection;
+  //let connection;
 
   try {
-    connection = await pool.getConnection();
+    //connection = await pool.getConnection();
 
-    const [rows] = await connection.execute("SELECT 1 FROM Grouplist WHERE Group_name =?", [grpName]);
+    const [rows] = await pool.query("SELECT 1 FROM Grouplist WHERE Group_name =?", [grpName]);
     if (rows.length > 0) {
       //group exist
       return res.status(400).send("Group existed");
     }
 
-    await connection.beginTransaction();
+    //await connection.beginTransaction();
 
     // Insert New Group
-    const [result] = await connection.execute("INSERT INTO Grouplist (Group_name) VALUES (?)", [grpName]);
+    const [result] = await pool.execute("INSERT INTO Grouplist (Group_name) VALUES (?)", [grpName]);
+    //const [result] = await connection.execute("INSERT INTO Grouplist (Group_name) VALUES (?)", [grpName]);
 
     if (result.affectedRows === 0) {
       // Rollback and hanlde insertion failure
-      await connection.rollback();
+      //await connection.rollback();
       res.status(400).send("Unable to insert");
       return;
     }
 
     //Commit transaction
-    await connection.commit();
+    //await connection.commit();
     res.status(200).send("New Group added");
   } catch (err) {
     console.error(err);

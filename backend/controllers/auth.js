@@ -12,12 +12,12 @@ exports.authenticateUser = async (req, res) => {
       message: "Username and password are required.",
     });
   }
-  let connection;
+  //let connection;
 
   try {
-    connection = await pool.getConnection();
+    //connection = await pool.getConnection();
     // Fetch user from the database
-    const [results, fields] = await connection.execute("SELECT * FROM User WHERE User_name = ?", [User_name]);
+    const [results, fields] = await pool.query("SELECT * FROM User WHERE User_name = ?", [User_name]);
     if (results.length === 0) {
       // User not found
       return res.status(404).json({ message: "User not found" });
@@ -25,7 +25,7 @@ exports.authenticateUser = async (req, res) => {
     const user = results[0];
 
     const activeStatus = user.Active;
-    console.log("Active status: ",activeStatus);
+    console.log("Active status: ", activeStatus);
 
     // check for disable account
     if (activeStatus == 0) {
@@ -34,7 +34,7 @@ exports.authenticateUser = async (req, res) => {
 
     const userHashP = user.Password;
 
-    // Compare the password with the hashed password in the database
+    // Compare the password with the hashed password from the database
     const match = await bcrypt.compare(Password, userHashP);
 
     if (match) {
@@ -64,8 +64,9 @@ exports.authenticateUser = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
-  } finally {
-    connection.release();
+    // } finally {
+    //   connection.release();
+    // }
   }
 };
 

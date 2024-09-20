@@ -22,9 +22,9 @@ export function validateEmail(email) {
 export function validateEmpty(field) {
 	// Check if field is null, undefined, or an empty string
 	if (field === null || field === undefined || field.trim() === '') {
-		return false; // Field is considered empty
+		return true; // Field is considered empty
 	}
-	return true; // Field has content
+	return false; // Field has content
 }
 
 export function validateGroupName(groupName) {

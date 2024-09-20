@@ -2,42 +2,41 @@
 	import { onMount } from 'svelte';
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
-	import TopNavBar from '../../components/TopNavBar/+page.svelte';
+	//import TopNavBar from '../../components/NavBar.svelte';
+	import TopNavBar from '../../components/NavBar.svelte';
 	import Popup from '../../components/PopUp/+page.svelte';
 	import Toast from '../../components/Toast.svelte';
-	import { createEventDispatcher } from 'svelte';
+	//import { createEventDispatcher } from 'svelte';
 	import { addToast } from '../../components/store';
 	import MultiSelect from 'svelte-multiselect';
 	import {
 		validatePassword,
 		validateEmail,
 		validateEmpty,
-		validateName,
 		validateGroupName
 	} from '../../utils/validators.js';
 
-	const dispatch = createEventDispatcher();
+	//const dispatch = createEventDispatcher();
 
 	let username = '';
 	let groupname = '';
 	let errorMessage = '';
 	let successMessage = '';
 	let pageName = 'User Management';
+	let activeStats: number;
 
-	let userList: user[] = [];
-	let groups: string[] = []; // State to hold the list of groups
+	let editingUserId: number | null = null; // Track the user being edited
 
-	// Flags to check if fields are touched
-	let emailChange = false;
-	let passChange = false;
-	let activeChange = false;
-	let groupChange = false;
+	let userList: user[] = []; // list to hold the list of user objects
+	let groups: string[] = []; // list to hold the list of groups
+
 	//let editing = null;
 
 	interface Group {
 		Group_name: string;
 	}
 
+	// user object to be used in the userList
 	let user = {
 		username: '',
 		password: '',
@@ -55,6 +54,12 @@
 		id: number;
 	}
 
+	// onChnage Flags to check if fields are touched
+	let emailChange = false;
+	let passChange = false;
+	let activeChange = false;
+	let groupChange = false;
+
 	// this is to indicate flags when any of the user's field is edited.
 	let editPass;
 	let editEmail;
@@ -70,15 +75,22 @@
 
 			if (responseGetGrpName.status === 200) {
 				const data = responseGetGrpName.data[0];
+				console.log(data);
 				// Assign username and groupName
 				username = data.User_name;
 				groupname = data.Group_name;
+				activeStats = data.Active;
 				console.log('User Name: ', username);
 				console.log('Group Name: ', groupname);
+				console.log('Active: ', activeStats);
 			}
 		} catch (error) {
 			console.error('Error fetching profile:', error);
 			errorMessage = 'An error occurred while fetching user profile.';
+			goto('/');
+		}
+		if (activeStats === 0) {
+			console.log('Inactive Account');
 			goto('/');
 		}
 		if (groupname != 'Admin') {
@@ -95,6 +107,7 @@
 				withCredentials: true
 			});
 			if (response.status === 200) {
+				userList = [];
 				userList = response.data;
 				userList = response.data.map((user: user, index: number) => ({
 					...user,
@@ -150,8 +163,6 @@
 		newUser.group = [];
 	}
 
-	let editingUserId: number | null = null; // Track the user being edited
-
 	// Edit user
 	const editUser = (id: number) => {
 		editGroup = userList[id].Group;
@@ -165,11 +176,26 @@
 		editingUserId = null;
 	};
 
+	function validateName(name: string) {
+		const line = new RegExp(/^[a-zA-Z0-9]+$/); // No spaces allowed
+		return line.test(name);
+	}
+
 	// Add new user
 	const addUser = async () => {
 		// Validate user name and password fields
-		if (!validateEmpty(newUser.username)) {
+		if (validateEmpty(newUser.username)) {
 			errorMessage = 'Please enter the name';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 3000
+			});
+			return;
+		}
+		if (!validateName(newUser.username)) {
+			errorMessage = 'Only numeric and alphabets allowed';
 			addToast({
 				message: errorMessage,
 				type: 'error',
@@ -231,8 +257,7 @@
 				goto('/user-management');
 			} catch (error) {
 				console.error('Error adding user:', error);
-				if(error.response.data.message == "Access denied.")
-				{
+				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
 			}
@@ -242,6 +267,7 @@
 	let showPopup = false;
 
 	const handleAddGroup = (groupName: string) => {
+		console.log("Now handleAddGroup Parent");
 		console.log('Group added:', groupName);
 		if (!groups.includes(groupName)) {
 			groups = [...groups, groupName]; // Add the new group to the list
@@ -254,22 +280,34 @@
 	};
 
 	const handleClosePopup = () => {
+		console.log("Now handle close up");
 		showPopup = false;
 	};
 
 	async function saveChanges(index) {
 		console.log('We are in the save changes function:');
 		console.log('Username: ', userList[index].User_name);
-		console.log(user);
+		console.log(userList[index]);
 		if (passChange) {
-			console.log('Change Password: ', editPass);
+			console.log('Change Password: ', userList[index].password);
+			if (!validatePassword(userList[index].password)) {
+				errorMessage =
+					'Password must be 8-10 characters long and include letters, numbers, and special characters.';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 3000
+				});
+				return;
+			}
 			try {
-				// update-email"
+				// update-password"
 				const response = await axios.put(
-					'http://localhost:3000/user/update-password',
+					'http://localhost:3000/user/update-password-admin',
 					{
 						User_name: userList[index].User_name,
-						Password: editPass
+						Password: userList[index].password
 					},
 					{
 						headers: {
@@ -287,12 +325,10 @@
 						timeout: 5000 // 5 seconds
 					});
 					editingUserId = null;
-					await fetchUserList();
 				}
 			} catch (error) {
 				console.log(error);
-				if(error.response.data.message == "Access denied.")
-				{
+				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
 				goto('/');
@@ -300,13 +336,13 @@
 		}
 		if (emailChange) {
 			console.log('Email change:');
-			console.log('New email: ', editEmail);
+			console.log('New email: ', userList[index].Email);
 			try {
 				const response = await axios.put(
-					'http://localhost:3000/user/update-email',
+					'http://localhost:3000/user/update-email-admin',
 					{
 						User_name: userList[index].User_name,
-						Email: editEmail
+						Email: userList[index].Email
 					},
 					{
 						headers: {
@@ -324,12 +360,10 @@
 						timeout: 1000 // 5 seconds
 					});
 					editingUserId = null;
-					await fetchUserList();
 				}
 			} catch (error) {
 				console.log('error');
-				if(error.response.data.message == "Access denied.")
-				{
+				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
 				errorMessage = 'email not updated';
@@ -343,13 +377,13 @@
 		}
 		if (activeChange) {
 			console.log('Active change:');
-			console.log('Active: ', editActive);
+			console.log('Active: ', userList[index].Active);
 			try {
 				const response = await axios.put(
 					'http://localhost:3000/user/update-active',
 					{
 						User_name: userList[index].User_name,
-						Active: editActive
+						Active: userList[index].Active
 					},
 					{
 						headers: {
@@ -360,18 +394,19 @@
 				);
 				if (response.status == 200) {
 					successMessage = 'Active updated succesfully';
-					console.log('Active 2:');
+					console.log('Active has been updated:');
 					addToast({
 						message: successMessage,
 						type: 'success',
 						dismissible: true,
-						timeout: 1000 // 5 seconds
+						timeout: 2000 // 5 seconds
 					});
+					editActive = null;
+					editingUserId = null;
 				}
 			} catch (error) {
-				console.log('error');
-				if(error.response.data.message == "Access denied.")
-				{
+				console.log('Unable to update Active Status');
+				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
 				errorMessage = 'Active not updated';
@@ -387,6 +422,7 @@
 			//console.log('Username:', user.User_name);
 			console.log('Group change:');
 			console.log('Group: ', userList[index].Group);
+			//console.log('Group: ', userList[index].Group);
 			try {
 				const response = await axios.put(
 					'http://localhost:3000/user/update-groups',
@@ -409,13 +445,12 @@
 						dismissible: true,
 						timeout: 1000 // 5 seconds
 					});
+					editGroup = [];
 					editingUserId = null;
-					await fetchUserList();
 				}
 			} catch (error) {
 				console.log(error);
-				if(error.response.data.message == "Access denied.")
-				{
+				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
 				errorMessage = 'Group not updated';
@@ -428,6 +463,14 @@
 			}
 		}
 		index = null;
+		editingUserId = null;
+		// reset flags
+		passChange = false;
+		emailChange = false;
+		activeChange = false;
+		groupChange = false;
+		await fetchUserList();
+		//goto('/user-management');
 	}
 </script>
 
@@ -457,7 +500,7 @@
 							type="password"
 							id="password"
 							name="password"
-							bind:value={editPass}
+							bind:value={userList[index].password}
 							on:change={(e) => (passChange = true)}
 						/>
 					{:else}
@@ -470,7 +513,7 @@
 							type="text"
 							id="email"
 							name="email"
-							bind:value={editEmail}
+							bind:value={userList[index].Email}
 							on:change={(e) => (emailChange = true)}
 						/>
 					{:else}
@@ -479,7 +522,7 @@
 				</td>
 				<td>
 					{#if editingUserId == index}
-						<select bind:value={editActive} on:change={(e) => (activeChange = true)}>
+						<select bind:value={userList[index].Active} on:change={(e) => (activeChange = true)}>
 							<option value="1">Yes</option>
 							<option value="0">No</option>
 						</select>

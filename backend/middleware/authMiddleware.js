@@ -8,44 +8,42 @@ async function authenticateToken(req, res, next) {
   const token = req.cookies.token;
 
   if (token == null)
-    return res.status(401).json({
-      status: "error",
-      message: "Token required.",
-    });
+    return res.status(401).json({status: "error",message: "Token required.",
+});
 
   let result;
   try {
-    result = jwt.verify(token, process.env.JWT_SECRET);
-    // Missing token
-    if (!result) {
-      return res.status(403).json({ status: "error", message: "Invalid token" });
-    }
-    // Different browser
-    if (result.browser != req.headers["user-agent"]) {
-      return res.status(403).json({ status: "error", message: "Invalid token" });
-    }
-    // Invalid Ip address
-    if (result.ipaddress != req.ip) {
-      return res.status(403).json({ status: "error", message: "Invalid token" });
-    }
-    console.log(result.User_name);
-    let [results] = await pool.execute(`SELECT User_name, active from User WHERE User_name = ?`, [result.User_name]);
-    console.log(results);
+        result = jwt.verify(token, process.env.JWT_SECRET);
+        // Missing token
+        if (!result) {
+          return res.status(403).json({ status: "error", message: "Invalid token" });
+        }
+        // Different browser
+        if (result.browser != req.headers["user-agent"]) {
+          return res.status(403).json({ status: "error", message: "Invalid token" });
+        }
+        // Invalid Ip address
+        if (result.ipaddress != req.ip) {
+          return res.status(403).json({ status: "error", message: "Invalid token" });
+        }
+        console.log(result.User_name);
+        let [results] = await pool.query(`SELECT User_name, active from User WHERE User_name = ?`, [result.User_name]);
+        console.log(results);
 
-    let activeStatus = results[0].active;
-    console.log(activeStatus);
-    if (activeStatus === 0) {
-      return res.status(401).json({ status: "error", message: "Invalid Creditials" });
-    }
+        let activeStatus = results[0].active;
+        console.log(activeStatus);
+        if (activeStatus === 0) {
+          return res.status(401).json({ status: "error", message: "Invalid Creditials" });
+        }
 
-    if (Object.entries(data).length === 0) {
-      //console.log("data is empty");
-      req.body = result;
-      //res.json({token});
-    } else {
-      //console.log("data not empty");
-      req.body = data;
-    }
+        if (Object.entries(data).length === 0) {
+          //console.log("data is empty");
+          req.body = result;
+          //res.json({token});
+        } else {
+          //console.log("data not empty");
+          req.body = data;
+        }
   } catch (err) {
     console.log(err);
     return res.status(403).json({ status: "error", message: "Invalid token" });
@@ -81,8 +79,8 @@ async function checkgroup(username, groupname) {
       JOIN Grouplist gl ON ug.Group_id = gl.Group_id
       WHERE ug.User_name = ? AND gl.Group_name = ?
     `;
-    const connection = await pool.getConnection();
-    const [results] = await connection.query(statement, [username, groupname]);
+    //const connection = await pool.getConnection();
+    const [results] = await pool.query(statement, [username, groupname]);
     //console.log(results);
     // If results[0].isMember is greater than 0, the user is in the group
     if (results[0].isMember > 0) {

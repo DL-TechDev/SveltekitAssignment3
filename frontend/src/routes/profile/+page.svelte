@@ -2,11 +2,13 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import axios from 'axios';
-	import TopNavBar from '../../components/TopNavBar/+page.svelte';
+	//import TopNavBar from '../../components/NavBar.svelte';
+	import TopNavBar from '../../components/NavBar.svelte';
 	import Button from '../../components/Button.svelte';
 	import { addToast } from '../../components/store';
 	import Toasts from '../../components/Toast.svelte';
 	import { validatePassword, validateEmail } from '../../utils/validators.js';
+
 
 	let username = '';
 	let email = '';
@@ -18,6 +20,7 @@
 	let pageName = 'User Profile';
 	let isAdmin=false;
 	let groupname='Admin';
+	let activeStatus;
 
 	//export async function GetProfile () {
 	onMount(async () => {
@@ -33,6 +36,9 @@
 				// Assign name and email data securely
 				username = data.User_name;
 				email = data.Email;
+				activeStatus= data.Active;
+
+				console.log("Active: ",activeStatus)
 				checkgroup(username,groupname);
 			} else {
 				// unable to fetch data
@@ -43,13 +49,17 @@
 			errorMessage = 'An error occurred while fetching user profile.';
 			goto('/'); // Use goto for navigation
 		}
+		if (activeStatus===0) {
+			console.log('Inactive Account');
+			goto('/');
+		}
 	});
 
 	export async function checkgroup (username, groupname) {
     //const isInGroup
 		try {
 			const response = await axios.get(
-				'http://localhost:3000/user/GroupName',{
+				'http://localhost:3000/user/user-group-name',{
         params: { User_name: username }, // Use 'params' to pass query parameters
         withCredentials: true // Include cookies with the request
       });

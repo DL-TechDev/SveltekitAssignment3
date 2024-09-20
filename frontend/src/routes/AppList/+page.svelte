@@ -1,4 +1,10 @@
 <script>
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import axios from 'axios';
+	//import TopNavBar from '../../components/NavBar.svelte';
+	import TopNavBar from '../../components/NavBar.svelte';
+
   let apps = [
     { name: "App Acronym", description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. some random description", number: "<r number>" },
     { name: "App name 2", description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. some random description", number: "123" }
@@ -6,11 +12,8 @@
   let pageName = 'App List';
   let username = '';
   let groupname='Admin';
+  let activeStatus;
   let isAdmin = false;
-  import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import axios from 'axios';
-	import TopNavBar from '../../components/TopNavBar/+page.svelte';
 
   export async function GetProfile () {
 		try {
@@ -24,6 +27,7 @@
 					const data = response.data[0];
 					// Assign name
 					username = data.User_name;
+					activeStatus = data.Active;
           			checkgroup(username,groupname);
 			} else {
 				// unable to fetch data
@@ -34,16 +38,20 @@
 			//errorMessage = 'An error occurred while fetching user profile.';
 			goto('/error'); // Use goto for navigation
 		}
+		if (activeStatus==0) {
+			console.log('Inactive Account');
+			goto('/');
+		}
 	}
 
   export async function checkgroup (username, groupname) {
     //const isInGroup
 		try {
 			const response = await axios.get(
-				'http://localhost:3000/user/GroupName',{
+				'http://localhost:3000/user/user-group-name',{
         		params: { User_name: username }, // Use 'params' to pass query parameters
         		withCredentials: true // Include cookies with the request
-      });
+      		});
         if (response.status === 200) {
               //console.log("We are in the response status 200");
               const data = response.data;

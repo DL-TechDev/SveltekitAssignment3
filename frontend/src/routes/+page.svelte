@@ -7,14 +7,14 @@
 	import { validateEmpty } from '../utils/validators';
 
 	export const userStore = writable(null);
-	let username = '';
-	let password = '';
+	let uName = '';
+	let uPassword = '';
 	let successMessage = '';
 	let errorMessage = '';
 
 	async function clearLogin() {
-		username = '';
-		password = '';
+		uName = '';
+		uPassword = '';
 	}
 
 	async function login () {
@@ -23,8 +23,8 @@
 			const response = await axios.post(
 				'http://localhost:3000/auth/login',
 				{
-					User_name: username,
-					Password: password
+					User_name: uName,
+					Password: uPassword
 				},
 				{
 					headers: {
@@ -40,42 +40,32 @@
 					message: errorMessage,
 					type: 'error',
 					dismissible: true,
-					timeout: 5000 // 5 seconds
+					timeout: 3000
 				});
 				goto('/AppList');
 				//console.log(response.data);
-			} else if (response.status === 400) {
-				// Bad request
+			} 
+			else if(response.status >= 400){
 				errorMessage = 'Invalid Credentials';
 				addToast({
 					message: errorMessage,
 					type: 'error',
 					dismissible: true,
-					timeout: 5000 // 5 seconds
+					timeout: 3000 
 				});
 				clearLogin();
-				return;
-			} else if (response.status === 404) {
-				// Bad request
+				goto('/');
+			}
+			else {
 				errorMessage = 'Invalid Credentials';
 				addToast({
 					message: errorMessage,
 					type: 'error',
 					dismissible: true,
-					timeout: 5000 // 5 seconds
+					timeout: 3000 
 				});
 				clearLogin();
-				return;
-			} else {
-				errorMessage = 'Invalid Credentials';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 5000 // 5 seconds
-				});
-				clearLogin();
-				return;
+				goto('/');
 			}
 		} catch (error) {
 			//console.error('Login error:', error);
@@ -85,23 +75,23 @@
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 5000 // 5 seconds
+				timeout: 1000
 			});
 			clearLogin();
-			return;
+			goto('/');
 		}
 	};
 
-	function validatorFields() {
-		console.log('Username: ', username);
-		console.log('Password: ', password);
-		if (!validateEmpty(username) || !validateEmpty(password)) {
-			errorMessage = 'Invalid Credentials';
+	function validatorFields(uName,uPassword) {
+		console.log('Username: ', uName);
+		console.log('Password: ', uPassword);
+		if (validateEmpty(uName) || validateEmpty(uPassword)) {
+			errorMessage = 'Invalid Credentials5';
 			addToast({
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 5000 // 5 seconds
+				timeout: 3000
 			});
 			goto('/');
 		} else {
@@ -115,17 +105,17 @@
 	<div class="sub-main">
 		<form class="login-form" on:submit|preventDefault>
 			<label for="username">Username: </label>
-			<input type="text" id="username" bind:value={username} placeholder="Username" required /><br
+			<input type="text" id="username" bind:value={uName} placeholder="Username" required /><br
 			/><br />
 			<label for="password">Password: </label>
 			<input
 				type="password"
 				id="password"
-				bind:value={password}
+				bind:value={uPassword}
 				placeholder="Password"
 				required
 			/><br /><br />
-			<button on:click={validatorFields}>Login</button>
+			<button on:click={validatorFields(uName,uPassword)}>Login</button>
 		</form>
 	</div>
 </div>

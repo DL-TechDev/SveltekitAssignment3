@@ -75,14 +75,17 @@
 
 			if (responseGetGrpName.status === 200) {
 				const data = responseGetGrpName.data[0];
-				console.log(data);
+				//console.log(data);
 				// Assign username and groupName
 				username = data.User_name;
 				groupname = data.Group_name;
 				activeStats = data.Active;
-				console.log('User Name: ', username);
-				console.log('Group Name: ', groupname);
-				console.log('Active: ', activeStats);
+				//console.log('User Name: ', username);
+				//console.log('Group Name: ', groupname);
+				//console.log('Active: ', activeStats);
+			}
+			if (responseGetGrpName.status == 403) {
+				goto('/');
 			}
 		} catch (error) {
 			console.error('Error fetching profile:', error);
@@ -113,9 +116,11 @@
 					...user,
 					id: index + 1 // Simple incremental ID
 				}));
-				console.log('UserList: ', userList);
+				//console.log('UserList: ', userList);
 			}
-
+			if (response.status == 403) {
+				goto('/');
+			}
 			const responseGetGroups = await axios.get('http://localhost:3000/user/getGroupNames', {
 				withCredentials: true
 			});
@@ -127,7 +132,7 @@
 			} else {
 				errorMessage = 'Unable to fetch data.';
 				console.warn('Unexpected response status:', response.status);
-				goto('/error');
+				goto('/');
 			}
 		} catch (error) {
 			console.error('Error fetching profile:', error);
@@ -136,7 +141,7 @@
 			// 	goto("/")
 			// }
 			errorMessage = 'An error occurred while fetching user profiles.';
-			goto('/error'); // Navigate to the error page
+			goto('/'); // Navigate to the error page
 		}
 	}
 
@@ -166,6 +171,8 @@
 	// Edit user
 	const editUser = (id: number) => {
 		editGroup = userList[id].Group;
+		editEmail = userList[id].Email;
+		editActive = userList[id].Active;
 		console.log('editUser');
 		console.log(id);
 		editingUserId = id; // enable the fields to be writable
@@ -174,6 +181,17 @@
 	// Cancel edit
 	const cancelEdit = (id: number) => {
 		editingUserId = null;
+		passChange = false;
+		emailChange = false;
+		activeChange = false;
+		groupChange = false;
+		userList[id].password = "***";
+		userList[id].Email= editEmail;
+		userList[id].Active = editActive;
+		userList[id].Group = editGroup;
+		editEmail='';
+		editActive='';
+		editGroup = [];
 	};
 
 	function validateName(name: string) {
@@ -215,8 +233,18 @@
 			});
 			return;
 		}
-		if (userList.some((user) => user.User_name === newUser.username)) {
+		if (userList.some((user) => user.User_name.toLowerCase() === newUser.username.toLowerCase())) {
 			errorMessage = 'User Name already exist.';
+			addToast({
+				message: errorMessage,
+				type: 'error',
+				dismissible: true,
+				timeout: 3000
+			});
+			return;
+		}
+			if(!validateEmail(newUser.email)){
+			errorMessage = 'Invalid email format (e.g. example@domain.com)';
 			addToast({
 				message: errorMessage,
 				type: 'error',
@@ -257,9 +285,13 @@
 				goto('/user-management');
 			} catch (error) {
 				console.error('Error adding user:', error);
-				if (error.response.data.message == 'Access denied.') {
-					goto('/');
-				}
+				//goto('/');
+				// if (error.response.data.message == 'Access denied.') {
+				// 	goto('/');
+				// }
+				// if (error.response.data.message == 'Access denied.') {
+				goto('/');
+				//}
 			}
 		}
 	};
@@ -267,7 +299,7 @@
 	let showPopup = false;
 
 	const handleAddGroup = (groupName: string) => {
-		console.log("Now handleAddGroup Parent");
+		console.log('Now handleAddGroup Parent');
 		console.log('Group added:', groupName);
 		if (!groups.includes(groupName)) {
 			groups = [...groups, groupName]; // Add the new group to the list
@@ -280,7 +312,7 @@
 	};
 
 	const handleClosePopup = () => {
-		console.log("Now handle close up");
+		console.log('Now handle close up');
 		showPopup = false;
 	};
 
@@ -337,6 +369,16 @@
 		if (emailChange) {
 			console.log('Email change:');
 			console.log('New email: ', userList[index].Email);
+			if(!validateEmail(userList[index].Email)){
+				errorMessage = 'Invalid email format (e.g. example@domain.com)';
+				addToast({
+					message: errorMessage,
+					type: 'error',
+					dismissible: true,
+					timeout: 3000
+				});
+				return;
+			}
 			try {
 				const response = await axios.put(
 					'http://localhost:3000/user/update-email-admin',
@@ -366,13 +408,7 @@
 				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
-				errorMessage = 'email not updated';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 1000
-				});
+				goto('/');
 			}
 		}
 		if (activeChange) {
@@ -409,13 +445,7 @@
 				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
-				errorMessage = 'Active not updated';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 1000
-				});
+				goto('/');
 			}
 		}
 		if (groupChange) {
@@ -453,13 +483,7 @@
 				if (error.response.data.message == 'Access denied.') {
 					goto('/');
 				}
-				errorMessage = 'Group not updated';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 1000
-				});
+				goto('/');
 			}
 		}
 		index = null;

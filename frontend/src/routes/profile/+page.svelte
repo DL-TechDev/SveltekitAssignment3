@@ -40,6 +40,10 @@
 
 				console.log("Active: ",activeStatus)
 				checkgroup(username,groupname);
+			if(response.status==403)
+			{
+				goto('/');
+			}
 			} else {
 				// unable to fetch data
 				goto('/');
@@ -49,10 +53,10 @@
 			errorMessage = 'An error occurred while fetching user profile.';
 			goto('/'); // Use goto for navigation
 		}
-		if (activeStatus===0) {
-			console.log('Inactive Account');
-			goto('/');
-		}
+		// if (activeStatus===0) {
+		// 	console.log('Inactive Account');
+		// 	goto('/');
+		// }
 	});
 
 	export async function checkgroup (username, groupname) {
@@ -82,12 +86,12 @@
                 }
         } else {
             // unable to fetch data
-            goto('/error');
+            goto('/');
         }
     } catch (error) {
 			console.error('Error fetching profile:', error);
 			//errorMessage = 'An error occurred while fetching user profile.';
-			goto('/error'); // Use goto for navigation
+			goto('/'); // Use goto for navigation
 		}
 	}
 
@@ -109,8 +113,6 @@
 			);
 			if(response.status==200)
 			{
-			
-
 			// Assuming the response has a message field
 			successMessage = response.data.message || 'Email updated successfully!';
 			addToast({
@@ -119,17 +121,18 @@
 				dismissible: true,
 				timeout: 3000
 			});
-
 			email = newEmail;
 			newEmail = ''; // Clear the input field after successful update
 			goto('/profile'); // Use goto for navigation
 			}
-			else{
-			goto('/');
-			}
-			
+			if(response.status==401)
+			{
+				console.log("Invalid User");
+				goto('/');
+			}	
 		} catch (error) {
 			console.error('Error updating email:', error);
+			goto('/');
 		}
 	};
 
@@ -154,7 +157,7 @@
 		if(validateEmail(newEmail)){
 			updateEmail();
 		} else {
-			errorMessage='Invalid Email Format';
+			errorMessage='Invalid email format (e.g. example@domain.com)';
 			addToast({
 				message: errorMessage,
 				type: 'error',
@@ -182,8 +185,8 @@
 					withCredentials: true // Include cookies with the request
 				}
 			);
-			goto('/profile'); // Use goto for navigation
-
+			password = newPassword;
+			newPassword = ''; // Clear the input field after successful update
 			// Assuming the response has a message field
 			successMessage = response.data.message || 'Password updated successfully!';
 			addToast({
@@ -192,11 +195,14 @@
 				dismissible: true,
 				timeout: 3000 // 10 seconds
 			});
-			
-			password = newPassword;
-			newPassword = ''; // Clear the input field after successful update
+			goto('/profile'); // Use goto for navigation
+			if(response.status==403)
+			{
+				goto('/');
+			}
 		} catch (error) {
 			console.error('Error updating password:', error);
+			goto('/');
 		}
 	};
 

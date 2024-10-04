@@ -16,16 +16,18 @@ app.use(cookieParser());
 // Middleware
 app.use(express.json()); // For parsing application/json
 
-
 // Import all routes
 const user = require("./routes/user");
 const group = require("./routes/group");
 const authRoute = require("./routes/auth");
+const taskRoute = require("./routes/taskManagement");
 
 // Routes
 app.use("/user", user);
 app.use("/group", group);
 app.use("/auth", authRoute);
+// routes for app, plan, tasks
+app.use("/tasks", taskRoute);
 
 // Start the server
 const PORT = process.env.PORT;

@@ -89,7 +89,7 @@
 			}
 		} catch (error) {
 			console.error('Error fetching profile:', error);
-			errorMessage = 'An error occurred while fetching user profile.';
+			//errorMessage = 'An error occurred while fetching user profile.';
 			goto('/');
 		}
 		if (activeStats === 0) {
@@ -130,7 +130,7 @@
 				groups = [...groupList.map((group: string) => group.Group_name)];
 				//console.log('GroupList: ', groups);
 			} else {
-				errorMessage = 'Unable to fetch data.';
+				//errorMessage = 'Unable to fetch data.';
 				console.warn('Unexpected response status:', response.status);
 				goto('/');
 			}
@@ -185,12 +185,12 @@
 		emailChange = false;
 		activeChange = false;
 		groupChange = false;
-		userList[id].password = "***";
-		userList[id].Email= editEmail;
+		userList[id].password = '***';
+		userList[id].Email = editEmail;
 		userList[id].Active = editActive;
 		userList[id].Group = editGroup;
-		editEmail='';
-		editActive='';
+		editEmail = '';
+		editActive = '';
 		editGroup = [];
 	};
 
@@ -208,7 +208,7 @@
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 3000
+				timeout: 1000
 			});
 			return;
 		}
@@ -218,7 +218,7 @@
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 3000
+				timeout: 1000
 			});
 			return;
 		}
@@ -229,7 +229,7 @@
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 3000
+				timeout: 1000
 			});
 			return;
 		}
@@ -239,19 +239,27 @@
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 3000
+				timeout: 1000
 			});
 			return;
 		}
-			if(!validateEmail(newUser.email)){
-			errorMessage = 'Invalid email format (e.g. example@domain.com)';
+		// if(newUser.email !="")
+		// {
+		if(!validateEmail(newUser.email)) {
+		 	errorMessage = 'Invalid email format (e.g. example@domain.com)';
 			addToast({
 				message: errorMessage,
 				type: 'error',
 				dismissible: true,
-				timeout: 3000
+				timeout: 1000
 			});
 			return;
+		// 	}
+		// }
+		// if(newUser.group.length===0)
+		// {
+		// 	newUser.group=[];
+		// }
 		} else {
 			// once both username and password are validated, procceed to add.
 			try {
@@ -277,7 +285,7 @@
 					message: successMessage,
 					type: 'success',
 					dismissible: true,
-					timeout: 5000 // 5 seconds
+					timeout: 1000
 				});
 				await clearAddUserFields();
 				editingUserId = null;
@@ -317,11 +325,11 @@
 	};
 
 	async function saveChanges(index) {
-		console.log('We are in the save changes function:');
-		console.log('Username: ', userList[index].User_name);
-		console.log(userList[index]);
+		//console.log('We are in the save changes function:');
+		//console.log('Username: ', userList[index].User_name);
+		//console.log(userList[index]);
 		if (passChange) {
-			console.log('Change Password: ', userList[index].password);
+			//console.log('Change Password: ', userList[index].password);
 			if (!validatePassword(userList[index].password)) {
 				errorMessage =
 					'Password must be 8-10 characters long and include letters, numbers, and special characters.';
@@ -359,17 +367,20 @@
 					editingUserId = null;
 				}
 			} catch (error) {
-				console.log(error);
-				if (error.response.data.message == 'Access denied.') {
+				//console.log(error);
+				if (error.response.status == 403) {
+					console.log('Unauthorized access!');
 					goto('/');
+					return;
 				}
+				console.log('Server Error caught here');
 				goto('/');
 			}
 		}
 		if (emailChange) {
-			console.log('Email change:');
-			console.log('New email: ', userList[index].Email);
-			if(!validateEmail(userList[index].Email)){
+			//console.log('Email change:');
+			//console.log('New email: ', userList[index].Email);
+			if (!validateEmail(userList[index].Email)) {
 				errorMessage = 'Invalid email format (e.g. example@domain.com)';
 				addToast({
 					message: errorMessage,
@@ -404,16 +415,19 @@
 					editingUserId = null;
 				}
 			} catch (error) {
-				console.log('error');
-				if (error.response.data.message == 'Access denied.') {
+				//console.log('Unble to update email');
+				if (error.response.status == 403) {
+					console.log('Unauthorized access!');
 					goto('/');
+					return;
 				}
+				console.log('Server Error caught here');
 				goto('/');
 			}
 		}
 		if (activeChange) {
-			console.log('Active change:');
-			console.log('Active: ', userList[index].Active);
+			//console.log('Active change:');
+			//console.log('Active: ', userList[index].Active);
 			try {
 				const response = await axios.put(
 					'http://localhost:3000/user/update-active',
@@ -441,17 +455,18 @@
 					editingUserId = null;
 				}
 			} catch (error) {
-				console.log('Unable to update Active Status');
-				if (error.response.data.message == 'Access denied.') {
+				//console.log('Unable to update Active Status');
+				if (error.response.status == 403) {
+					console.log('Unauthorized access!');
 					goto('/');
+					return;
 				}
+				console.log('Server Error caught here');
 				goto('/');
 			}
 		}
 		if (groupChange) {
-			//console.log('Username:', user.User_name);
-			console.log('Group change:');
-			console.log('Group: ', userList[index].Group);
+			//console.log('Group change:');
 			//console.log('Group: ', userList[index].Group);
 			try {
 				const response = await axios.put(
@@ -479,10 +494,13 @@
 					editingUserId = null;
 				}
 			} catch (error) {
-				console.log(error);
-				if (error.response.data.message == 'Access denied.') {
+				//console.log(error);
+				if (error.response.status == 403) {
+					console.log('Unauthorized access!');
 					goto('/');
+					return;
 				}
+				console.log('Server Error caught here');
 				goto('/');
 			}
 		}
@@ -502,7 +520,31 @@
 <div class="createGrp-container">
 	<button class="add-group-btn" on:click={handleOpenPopup}>Create New Group</button>
 </div>
-<table>
+
+<table class="table1">
+	<h2>Add New User</h2>
+		<tr>
+			<td><input type="text" placeholder="Username" bind:value={newUser.username} required /></td>
+			<td
+				><input type="password" placeholder="Password" bind:value={newUser.password} required /></td
+			>
+			<td><input type="text" placeholder="Email" bind:value={newUser.email} /></td>
+			<td>
+				<select bind:value={newUser.active}>
+					<option value="1">Yes</option>
+					<option value="2">No</option>
+				</select>
+			</td>
+			<td>
+				<MultiSelect bind:selected={newUser.group} options={groups} />
+				<!--{#each groups as group (group)}
+					<label><input type="checkbox" value={group} bind:group={newUser.group} />{group}</label>
+				{/each}-->
+			</td>
+			<td><button on:click={addUser}>Add User</button></td>
+		</tr>
+</table>
+<table class="table2">
 	<thead>
 		<tr>
 			<th>Username</th>
@@ -583,27 +625,7 @@
 				</td>
 			</tr>
 		{/each}
-		<tr><h2>Add New User</h2></tr>
-		<tr>
-			<td><input type="text" placeholder="Username" bind:value={newUser.username} required /></td>
-			<td
-				><input type="password" placeholder="Password" bind:value={newUser.password} required /></td
-			>
-			<td><input type="text" placeholder="Email" bind:value={newUser.email} /></td>
-			<td>
-				<select bind:value={newUser.active}>
-					<option value="1">Yes</option>
-					<option value="2">No</option>
-				</select>
-			</td>
-			<td>
-				<MultiSelect bind:selected={newUser.group} options={groups} />
-				<!--{#each groups as group (group)}
-					<label><input type="checkbox" value={group} bind:group={newUser.group} />{group}</label>
-				{/each}-->
-			</td>
-			<td><button on:click={addUser}>Add User</button></td>
-		</tr>
+		
 	</tbody>
 </table>
 <Toast />
@@ -611,10 +633,10 @@
 <Popup {groups} visible={showPopup} onClose={handleClosePopup} onAddGroup={handleAddGroup} />
 
 <style>
-	table {
+	.table1, .table2 {
 		width: 100%;
 		border-collapse: collapse;
-		margin-top: 20px;
+		
 	}
 
 	td,
@@ -696,7 +718,7 @@
 	.createGrp-container {
 		display: flex;
 		justify-content: flex-end; /* Align items to the right */
-		padding: 10px;
+		padding: 5px;
 	}
 
 	.edit-btn:hover,

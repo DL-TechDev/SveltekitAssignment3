@@ -9,13 +9,13 @@ const { authenticateToken, authorizeRole, checkgroup } = require("../middleware/
 router.get("/profile", authenticateToken, userController.getUser);
 router.put("/update-email", authenticateToken, userController.updateEmail);
 router.put("/update-password", authenticateToken, userController.updatePassword);
-router.get("/user-group-name", authenticateToken, userController.getGroupName);
+router.post("/user-group-name", authenticateToken, userController.getGroupName);
+router.get("/app-getGroupNames", authenticateToken,groupController.getAllGroupNames);
 
 // Admin Protected routes
 router.get("/getall", authenticateToken, authorizeRole("Admin"), userController.getAllUser);
 router.get("/GroupName", authenticateToken, authorizeRole("Admin"), userController.getGroupName);
 router.post("/create", authenticateToken, authorizeRole("Admin"), userController.CreateNewUser);
-//router.put("/updatedetails", authenticateToken, authorizeRole("Admin"), userController.updateUserDetails);
 router.put("/update-email-admin", authenticateToken, authorizeRole("Admin"), userController.updateEmail);
 router.put("/update-password-admin", authenticateToken, authorizeRole("Admin"), userController.updatePassword);
 router.post("/addGroup", authenticateToken, authorizeRole("Admin"), groupController.AddNewGrp);

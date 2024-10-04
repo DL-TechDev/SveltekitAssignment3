@@ -37,6 +37,11 @@ const logout = async () => {
         goto('/user-management');
     }
 
+  function goAppListPage() {
+
+        goto('/AppList');
+    }
+
   function handleLogout() {
         logout();
         goto('/');
@@ -58,6 +63,7 @@ const logout = async () => {
     <!-- Dropdown Menu -->
     <div class="dropdown">
       <a href="/profile" on:click={goProfilePage}>View/Edit Profile</a>
+      <a href="/AppList" on:click={goAppListPage}>Applist</a>
       {#if (isAdmin)}
       <a href="/user-management" on:click={goUserManagement}>User Management</a>
       {/if}

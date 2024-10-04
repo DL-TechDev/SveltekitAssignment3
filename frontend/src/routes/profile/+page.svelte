@@ -60,13 +60,19 @@
 	});
 
 	export async function checkgroup (username, groupname) {
-    //const isInGroup
 		try {
-			const response = await axios.get(
-				'http://localhost:3000/user/user-group-name',{
-        params: { User_name: username }, // Use 'params' to pass query parameters
-        withCredentials: true // Include cookies with the request
-      });
+			const response = await axios.post(
+				'http://localhost:3000/user/user-group-name',
+        		{ 
+					User_name: username	
+				},
+				{
+			    headers: {
+						'Content-Type': 'application/json'
+					},
+					withCredentials: true //
+				}
+			);
         if (response.status === 200) {
               //console.log("We are in the response status 200");
               const data = response.data;

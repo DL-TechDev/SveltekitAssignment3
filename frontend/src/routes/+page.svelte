@@ -37,36 +37,36 @@
 			if (response.status === 200) {
 				successMessage = 'Successful Login';
 				addToast({
-					message: errorMessage,
-					type: 'error',
+					message: successMessage,
+					type: 'success',
 					dismissible: true,
-					timeout: 3000
+					timeout: 1000
 				});
 				goto('/AppList');
 				//console.log(response.data);
 			} 
-			else if(response.status >= 400){
-				errorMessage = 'Invalid Credentials';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 3000 
-				});
-				clearLogin();
-				goto('/');
-			}
-			else {
-				errorMessage = 'Invalid Credentials';
-				addToast({
-					message: errorMessage,
-					type: 'error',
-					dismissible: true,
-					timeout: 3000 
-				});
-				clearLogin();
-				goto('/');
-			}
+			// else if(response.status >= 400){
+			// 	errorMessage = 'Invalid Credentials';
+			// 	addToast({
+			// 		message: errorMessage,
+			// 		type: 'error',
+			// 		dismissible: true,
+			// 		timeout: 1000 
+			// 	});
+			// 	clearLogin();
+			// 	goto('/');
+			// }
+			// else {
+			// 	errorMessage = 'Invalid Credentials';
+			// 	addToast({
+			// 		message: errorMessage,
+			// 		type: 'error',
+			// 		dismissible: true,
+			// 		timeout: 1000 
+			// 	});
+			// 	clearLogin();
+			// 	goto('/');
+			// }
 		} catch (error) {
 			//console.error('Login error:', error);
 			clearLogin();
@@ -87,12 +87,12 @@
 		console.log('Password: ', uPassword);
 		if (validateEmpty(uName) || validateEmpty(uPassword)) {
 			errorMessage = 'Invalid Credentials5';
-			addToast({
-				message: errorMessage,
-				type: 'error',
-				dismissible: true,
-				timeout: 3000
-			});
+			// addToast({
+			// 	message: errorMessage,
+			// 	type: 'error',
+			// 	dismissible: true,
+			// 	timeout: 1000
+			// });
 			goto('/');
 		} else {
 			console.log('We are in the login part');

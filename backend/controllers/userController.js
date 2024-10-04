@@ -163,6 +163,7 @@ exports.CreateNewUser = async (req, res) => {
   //console.log(req.body);
   const { User_name, Password, Email, Active, Group_name } = req.body; //Use req.body for POST request data
   console.log("Active: ", Active);
+  console.log("Group names: ", Group_name);
 
   //let connection;
   try {
@@ -200,7 +201,7 @@ exports.CreateNewUser = async (req, res) => {
     console.log("Before Commit");
     // Commit transaction
     //await connection.commit();
-    res.status(200).send("New User added successfully");
+    //res.status(200).send("New User added successfully");
   } catch (err) {
     // if (connection) {
     //   // Rollback on error
@@ -260,6 +261,7 @@ exports.CreateNewUser = async (req, res) => {
         return res.status(404).send("Unable to add the User's group");
       }
     }
+    console.log("All groups id for this user");
     //await connection.commit(); // Commit transaction
     res.status(200).send("New User added successfully");
   } catch (err) {

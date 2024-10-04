@@ -5,6 +5,7 @@
   // Bind to the `toasts` store to reactively get the toasts list
   let toastList = [];
   const unsubscribe = toasts.subscribe(value => {
+    console.log(value);
     toastList = value;
   });
 

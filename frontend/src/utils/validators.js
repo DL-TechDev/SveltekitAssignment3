@@ -28,7 +28,7 @@ export function validateEmpty(field) {
 }
 
 export function validateGroupName(groupName) {
-	const regex = /^[a-zA-Z0-9_]+$/;
+	const regex = /^[a-zA-Z0-9_ ]+$/;
 	return regex.test(groupName);
 }
 
